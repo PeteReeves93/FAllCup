@@ -1,0 +1,13 @@
+# Cloudflare Pages headers
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# Revalidate JS/CSS each load so deploys aren't served stale
+# (filenames aren't hashed; tighten later if you add cache-busting)
+/assets/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+/assets/css/*
+  Cache-Control: public, max-age=0, must-revalidate

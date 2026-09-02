@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — F.All Cup II</title>
+  <meta name="description" content="Sign in to the F.All Cup II to build and manage your team.">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="login">
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="gate">
+          <img src="assets/img/logo.png" alt="crest" style="height:76px;margin-bottom:.4rem">
+
+          <!-- signed-OUT: the sign-in form -->
+          <div id="signin-form">
+            <h2 class="mt0">Coach sign-in</h2>
+            <p class="muted">Log in to build your team and keep your roster up to date. Rosters are private — no one else can see yours.</p>
+
+            <button class="btn block discord" id="btn-discord">Continue with Discord</button>
+
+            <div style="display:flex;align-items:center;gap:10px;margin:1.2rem 0;color:var(--faint)">
+              <span style="flex:1;height:1px;background:var(--border)"></span>or<span style="flex:1;height:1px;background:var(--border)"></span>
+            </div>
+
+            <label class="small muted" style="display:block;text-align:left;margin-bottom:.3rem" for="email-input">Email magic link</label>
+            <input id="email-input" type="email" placeholder="you@example.com"
+              style="width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-2);color:var(--text);font-size:1rem">
+            <button class="btn block" id="btn-magic" style="margin-top:.7rem">Send magic link</button>
+
+            <p class="muted small" id="auth-msg" style="margin-top:1.2rem;min-height:1.2em"></p>
+          </div>
+
+          <!-- signed-IN: the account panel -->
+          <div id="signed-in" style="display:none">
+            <div style="font-size:2.6rem;line-height:1">✅</div>
+            <h2 class="mt0" style="margin-top:.4rem">You're signed in</h2>
+            <p class="muted mb0">Signed in as</p>
+            <p style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent-bright);margin:.1rem 0 1.2rem" id="who">—</p>
+            <a class="btn block" href="builder.html">Go to the Team Builder</a>
+            <a class="btn ghost block" href="index.html" style="margin-top:.6rem">Back to home</a>
+            <button class="btn ghost block" id="btn-logout" style="margin-top:.6rem">Log out</button>
+            <p class="muted small" id="admin-note" style="margin-top:1rem"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/supabase.js"></script>
+  <script type="module">
+    const DB = window.FALLCUP_DB;
+    const form = document.getElementById('signin-form');
+    const panel = document.getElementById('signed-in');
+    const who = document.getElementById('who');
+    const adminNote = document.getElementById('admin-note');
+    const msg = document.getElementById('auth-msg');
+    const bD = document.getElementById('btn-discord');
+    const bM = document.getElementById('btn-magic');
+
+    function render(state) {
+      const configured = state?.configured ?? DB.configured;
+      const user = state?.user ?? DB.user;
+      const profile = state?.profile ?? DB.profile;
+      if (user) {
+        form.style.display = 'none';
+        panel.style.display = 'block';
+        who.textContent = (profile && profile.display_name) || user.email || 'Coach';
+        adminNote.textContent = DB.isAdmin() ? 'You have admin access.' : '';
+      } else {
+        form.style.display = 'block';
+        panel.style.display = 'none';
+        bD.disabled = !configured;
+        bM.disabled = !configured;
+        msg.textContent = configured ? '' : 'Backend not connected yet — sign-in activates once the Supabase keys are added to config.js.';
+      }
+    }
+    DB.onChange(render);
+    render();
+
+    bD.addEventListener('click', (e) => { e.preventDefault(); DB.signInDiscord(); });
+    bM.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email-input').value.trim();
+      if (!email) { msg.textContent = 'Enter your email first.'; return; }
+      msg.textContent = 'Sending…';
+      const { error } = await DB.signInEmail(email);
+      msg.textContent = error ? ('Error: ' + error.message) : 'Magic link sent — check your email.';
+    });
+    document.getElementById('btn-logout').addEventListener('click', async () => { await DB.signOut(); location.reload(); });
+  </script>
+</body>
+</html>

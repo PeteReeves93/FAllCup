@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kick-Off Table — F.All Cup II</title>
+  <meta name="description" content="The Blood Bowl 2025 Kick-Off event table (2D6), with a roller.">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="kickoff">
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="eyebrow">Blood Bowl 2025</div>
+        <h1>Kick-Off Table</h1>
+        <p class="lead">After the ball is kicked, roll <strong>2D6</strong> and consult the table for what the crowd, the ref and Nuffle have in store.</p>
+
+        <div class="roller">
+          <button class="btn" id="roll-kickoff">🎲 Roll 2D6</button>
+          <div class="dice-result" id="dice-result" style="margin-top:1rem">&mdash;</div>
+          <div class="dice-outcome" id="dice-outcome"></div>
+          <p class="muted" id="dice-desc" style="margin-top:.4rem"></p>
+        </div>
+
+        <div data-render="kickoff"></div>
+
+        <p class="muted small" style="margin-top:1rem">
+          Event effects are summarised — refer to the current rulebook Kick-Off Table for full wording.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>

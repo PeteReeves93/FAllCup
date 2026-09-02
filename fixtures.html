@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixtures — F.All Cup II</title>
+  <meta name="description" content="The F.All Cup II fixture list by round and date window.">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="fixtures">
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="eyebrow">The draw</div>
+        <h1>Fixtures</h1>
+        <p class="lead">Match-ups by round and date window. The first-round draw is broadcast on <strong>Sunday 30 August 2026</strong>; each subsequent round is drawn at the close of the previous one.</p>
+
+        <div id="fixtures-app">
+          <!-- Live fixtures render here when the backend is connected; static preview below until then. -->
+          <div class="notice wip">
+            <h4>Not yet wired up</h4>
+            <p class="muted mb0">Once the Supabase backend is connected and the draw is entered, fixtures appear here automatically. Preview of the layout:</p>
+          </div>
+          <h3 style="margin-top:1.6rem">Round 1 &mdash; Round Robin</h3>
+          <div class="table-wrap"><table>
+            <thead><tr><th class="num">#</th><th class="name">Home</th><th class="name">Away</th><th>Date window</th></tr></thead>
+            <tbody>
+              <tr><td class="num">1</td><td class="name muted">TBD</td><td class="name muted">TBD</td><td class="muted">after 30 Aug draw</td></tr>
+              <tr><td class="num">2</td><td class="name muted">TBD</td><td class="name muted">TBD</td><td class="muted">after 30 Aug draw</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <p class="muted small" style="margin-top:1rem">Knock-out rounds are added as the Cup progresses. Teams knocked out drop into the F.All Plate (Dungeon Bowl).</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/supabase.js"></script>
+  <script type="module" src="assets/js/league.js"></script>
+</body>
+</html>

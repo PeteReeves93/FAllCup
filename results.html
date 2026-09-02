@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Results &amp; Standings — F.All Cup II</title>
+  <meta name="description" content="F.All Cup II results and the Round Robin league table.">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="results">
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="eyebrow">Round Robin</div>
+        <h1>Results &amp; Standings</h1>
+        <p class="lead">The league table and scores, refreshed roughly every two weeks as fixtures are played. Points: Win 3, Draw 1 (scoring to be confirmed).</p>
+
+        <h3 style="margin-top:2rem">League table</h3>
+        <div id="standings-app">
+          <div class="notice wip">
+            <h4>Not yet wired up</h4>
+            <p class="muted mb0">When the backend is connected, this table computes W/D/L, points, TD difference and casualties automatically from entered results.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:2.4rem">Latest results</h3>
+        <div id="results-app">
+          <div class="notice"><p class="muted mb0">No matches played yet. Scores will be listed here by round once the Cup kicks off.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/supabase.js"></script>
+  <script type="module" src="assets/js/league.js"></script>
+</body>
+</html>

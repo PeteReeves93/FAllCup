@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team Builder — F.All Cup II</title>
+  <meta name="description" content="Draft and manage your F.All Cup II roster to the competition rules. Sign in required.">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="builder">
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="eyebrow">Draft &amp; manage</div>
+        <h1>Team Builder</h1>
+        <p class="lead">Build your squad to the F.All Cup rules, track budget and SPP live, and keep your roster up to date. Your roster is private — only you and the admin can see it.</p>
+
+        <!-- live builder / auth gate / notices render here -->
+        <div id="builder-app" style="margin-top:1.4rem">
+          <div class="notice"><p class="muted mb0">Loading…</p></div>
+        </div>
+
+        <hr>
+
+        <h2>The build rules</h2>
+        <div class="grid grid-3" style="margin-top:1rem">
+          <div class="card card-topline"><h4>Budget</h4><p class="mb0 muted"><strong style="color:#fff">1,150,000 gp</strong>. Spend what you like; the rest banks to treasury.</p></div>
+          <div class="card card-topline"><h4>Dedicated Fans</h4><p class="mb0 muted">Start at 1 free, buy up to 3 more (5k each; 4 total), pre-Game-1 only. Not in CTV.</p></div>
+          <div class="card card-topline"><h4>Secondary skill</h4><p class="mb0 muted">One player may take a Secondary for 12 SPP (uses 10, forfeits 2).</p></div>
+        </div>
+
+        <h3 style="margin-top:1.8rem">Starting SPP by tier</h3>
+        <div data-render="tiers"></div>
+        <p class="muted small">Distributable to a maximum of 6 SPP per player. 6 SPP buys one chosen Primary skill.</p>
+
+        <h3 style="margin-top:1.8rem">Inducements by tier</h3>
+        <div data-render="inducements"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/supabase.js"></script>
+  <script type="module" src="assets/js/builder.js"></script>
+</body>
+</html>

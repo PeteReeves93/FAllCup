@@ -1,0 +1,8 @@
+# nothing secret lives in this repo — the Supabase publishable key is public by design,
+# and the service_role key is never stored in any file.
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.vscode/

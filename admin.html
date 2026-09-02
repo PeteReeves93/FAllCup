@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — F.All Cup II</title>
+  <meta name="description" content="Admin tools for the F.All Cup II: validate rosters, enter results, manage fixtures.">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="admin">
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="eyebrow">Admins only</div>
+        <h1>Admin</h1>
+        <p class="lead">Validate teams, enter results, run the draw and manage fixtures. Restricted to admin accounts.</p>
+
+        <div id="admin-app" style="margin-top:1.4rem">
+          <div class="notice"><p class="muted mb0">Loading…</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/supabase.js"></script>
+  <script type="module" src="assets/js/admin.js"></script>
+</body>
+</html>
