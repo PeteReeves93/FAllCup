@@ -23,9 +23,11 @@ async function refreshProfile() {
   currentProfile = data || null;
 }
 
+let resolved = false;   // true once the initial session check has completed
 function fire() {
+  resolved = true;
   window.dispatchEvent(new CustomEvent('fallcup:auth', {
-    detail: { user: currentUser, profile: currentProfile, configured },
+    detail: { user: currentUser, profile: currentProfile, configured, resolved },
   }));
   paintNav();
 }
@@ -55,6 +57,7 @@ const api = {
   configured,
   get user() { return currentUser; },
   get profile() { return currentProfile; },
+  get resolved() { return resolved; },
   isAdmin() { return !!currentProfile?.is_admin; },
 
   async signInDiscord() {

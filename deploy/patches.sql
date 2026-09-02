@@ -27,3 +27,25 @@ alter table public.roster_players add column if not exists notes       text;
 alter table public.roster_players add column if not exists skills      jsonb   not null default '[]'::jsonb;
 alter table public.roster_players add column if not exists spp         smallint not null default 0;
 alter table public.roster_players add column if not exists player_name text;
+
+-- 5) Match-stat tracking on results + coach-submitted results.
+alter table public.results add column if not exists submitted_by       uuid default auth.uid();
+alter table public.results add column if not exists home_crowd_surfs   smallint not null default 0;
+alter table public.results add column if not exists away_crowd_surfs   smallint not null default 0;
+alter table public.results add column if not exists home_ttm_td        smallint not null default 0;  -- successful Throw Team-mate TDs
+alter table public.results add column if not exists away_ttm_td        smallint not null default 0;
+alter table public.results add column if not exists home_ttm_cas       smallint not null default 0;  -- failed TTM (thrown player cas)
+alter table public.results add column if not exists away_ttm_cas       smallint not null default 0;
+alter table public.results add column if not exists home_fouls         smallint not null default 0;  -- successful fouls
+alter table public.results add column if not exists away_fouls         smallint not null default 0;
+alter table public.results add column if not exists home_foul_sendoffs smallint not null default 0;  -- sent off for a foul
+alter table public.results add column if not exists away_foul_sendoffs smallint not null default 0;
+alter table public.results add column if not exists home_tripwire      smallint not null default 0;  -- trip wire failings
+alter table public.results add column if not exists away_tripwire      smallint not null default 0;
+
+-- Coaches (any signed-in user) may SUBMIT results; admins may edit/delete.
+drop policy if exists results_admin_write  on public.results;
+drop policy if exists results_coach_insert on public.results;
+drop policy if exists results_admin_all    on public.results;
+create policy results_coach_insert on public.results for insert to authenticated with check (true);
+create policy results_admin_all    on public.results for all    to authenticated using (public.is_admin()) with check (public.is_admin());

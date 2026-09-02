@@ -405,9 +405,16 @@ create table if not exists public.results (
   away_td     smallint not null default 0,
   home_cas    smallint not null default 0,
   away_cas    smallint not null default 0,
+  home_crowd_surfs   smallint not null default 0, away_crowd_surfs   smallint not null default 0,
+  home_ttm_td        smallint not null default 0, away_ttm_td        smallint not null default 0,  -- successful TTM TDs
+  home_ttm_cas       smallint not null default 0, away_ttm_cas       smallint not null default 0,  -- failed TTM (thrown player cas)
+  home_fouls         smallint not null default 0, away_fouls         smallint not null default 0,  -- successful fouls
+  home_foul_sendoffs smallint not null default 0, away_foul_sendoffs smallint not null default 0,  -- sent off for a foul
+  home_tripwire      smallint not null default 0, away_tripwire      smallint not null default 0,  -- trip wire failings
   forfeit     text check (forfeit in ('home','away','double')),
   played_on   date,
   notes       text,
+  submitted_by uuid default auth.uid(),
   created_at  timestamptz not null default now()
 );
 
@@ -489,8 +496,11 @@ create policy fixtures_admin_write on public.fixtures for all using (public.is_a
 
 drop policy if exists results_public_read on public.results;
 create policy results_public_read on public.results for select using (true);
-drop policy if exists results_admin_write on public.results;
-create policy results_admin_write on public.results for all using (public.is_admin()) with check (public.is_admin());
+-- coaches (any signed-in user) may submit results; admins may edit/delete
+drop policy if exists results_coach_insert on public.results;
+create policy results_coach_insert on public.results for insert to authenticated with check (true);
+drop policy if exists results_admin_all on public.results;
+create policy results_admin_all on public.results for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- grants (RLS still governs rows)
 grant usage on schema public to anon, authenticated;

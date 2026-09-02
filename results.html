@@ -14,20 +14,16 @@
       <div class="container">
         <div class="eyebrow">Round Robin</div>
         <h1>Results &amp; Standings</h1>
-        <p class="lead">The league table and scores, refreshed roughly every two weeks as fixtures are played. Points: Win 3, Draw 1 (scoring to be confirmed).</p>
+        <p class="lead">The league table and scores, refreshed as fixtures are played. Points: Win 3, Draw 1 (scoring to be confirmed).</p>
+
+        <!-- coach result submission (filled by league.js when signed in) -->
+        <div id="submit-app"></div>
 
         <h3 style="margin-top:2rem">League table</h3>
-        <div id="standings-app">
-          <div class="notice wip">
-            <h4>Not yet wired up</h4>
-            <p class="muted mb0">When the backend is connected, this table computes W/D/L, points, TD difference and casualties automatically from entered results.</p>
-          </div>
-        </div>
+        <div id="standings-app"><div class="notice"><p class="muted mb0">Loading standings…</p></div></div>
 
         <h3 style="margin-top:2.4rem">Latest results</h3>
-        <div id="results-app">
-          <div class="notice"><p class="muted mb0">No matches played yet. Scores will be listed here by round once the Cup kicks off.</p></div>
-        </div>
+        <div id="results-app"><div class="notice"><p class="muted mb0">Loading results…</p></div></div>
       </div>
     </section>
   </main>

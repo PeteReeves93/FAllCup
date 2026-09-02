@@ -9,7 +9,18 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 const money = n => (n == null ? '—' : (n / 1000).toLocaleString() + 'k');
 const app = () => document.getElementById('admin-app');
 
-let entries = [], profiles = {};
+let entries = [], profiles = {}, RESULTS = [], editingResultId = null;
+
+// tracked match stats: [column-key, label]. Columns are home_<key> / away_<key>.
+const STAT_KEYS = [
+  ['td', 'Touchdowns'], ['cas', 'Casualties'], ['crowd_surfs', 'Crowd surfs'],
+  ['ttm_td', 'TTM TDs (successful)'], ['ttm_cas', 'TTM cas (failed throw)'],
+  ['fouls', 'Fouls (successful)'], ['foul_sendoffs', 'Foul send-offs'], ['tripwire', 'Trip wire fails'],
+];
+function resultStatRows() {
+  const ni = 'padding:5px;border-radius:6px;border:1px solid var(--border);background:var(--bg-2);color:var(--text);width:64px;text-align:center';
+  return STAT_KEYS.map(([k, l]) => `<tr><td class="small">${l}</td><td class="num"><input id="r-h-${k}" type="number" min="0" value="0" style="${ni}"></td><td class="num"><input id="r-a-${k}" type="number" min="0" value="0" style="${ni}"></td></tr>`).join('');
+}
 
 function boot() {
   if (!app()) return;
@@ -20,7 +31,9 @@ function boot() {
 function render(state) {
   const configured = state?.configured ?? DB.configured;
   const user = state?.user ?? DB.user;
+  const resolved = state?.resolved ?? DB.resolved;
   if (!configured) { app().innerHTML = notice('Backend not connected yet — add Supabase keys to config.js.', 'wip'); return; }
+  if (!resolved && !user) { app().innerHTML = notice('Loading…'); return; }
   if (!user) { app().innerHTML = gate(); return; }
   if (!DB.isAdmin()) {
     app().innerHTML = notice('You are signed in, but this account is not an admin. Set <code>is_admin = true</code> on your profile row to get access.', 'wip');
@@ -85,20 +98,18 @@ function paint(fixtures, results, teams) {
     </div>
 
     <div class="card">
-      <h3 class="mt0">Enter result</h3>
+      <h3 class="mt0" id="r-title">Enter result</h3>
       <div class="pill-row" style="gap:6px;align-items:center">
         <select id="r-home" style="${inp()}">${entryOptions()}</select>
-        <input id="r-htd" type="number" min="0" value="0" title="Home TD" style="${inp()};max-width:70px">
-        <span class="muted">–</span>
-        <input id="r-atd" type="number" min="0" value="0" title="Away TD" style="${inp()};max-width:70px">
+        <span class="muted">vs</span>
         <select id="r-away" style="${inp()}">${entryOptions()}</select>
       </div>
+      <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th class="name">Stat</th><th class="num">Home</th><th class="num">Away</th></tr></thead><tbody>${resultStatRows()}</tbody></table></div>
       <div class="pill-row" style="gap:6px;margin-top:6px;align-items:center">
-        <input id="r-hcas" type="number" min="0" value="0" title="Home cas" style="${inp()};max-width:80px" placeholder="H cas">
-        <input id="r-acas" type="number" min="0" value="0" title="Away cas" style="${inp()};max-width:80px" placeholder="A cas">
         <select id="r-forfeit" style="${inp()};max-width:150px"><option value="">Played normally</option><option value="home">Forfeit: home loses</option><option value="away">Forfeit: away loses</option><option value="double">Double forfeit</option></select>
         <input id="r-date" type="date" style="${inp()};max-width:160px">
         <button class="btn" id="r-add">Save result</button>
+        <button class="btn ghost" id="r-cancel" style="display:none">Cancel</button>
       </div>
       <div id="results-list" style="margin-top:.8rem"></div>
     </div>
@@ -135,14 +146,32 @@ function renderEntries() {
 
 function renderFixtures(fx) {
   const host = document.getElementById('fixtures-list');
-  const nameOf = id => entries.find(e => e.id === id)?.team_name || 'TBD';
-  host.innerHTML = fx.length ? `<div class="table-wrap"><table><thead><tr><th class="num">R</th><th class="name">Home</th><th class="name">Away</th><th>Window</th></tr></thead><tbody>${fx.map(f => `<tr><td class="num">${f.round_no}</td><td class="name">${esc(nameOf(f.home_entry))}</td><td class="name">${esc(nameOf(f.away_entry))}</td><td class="muted">${esc(f.date_window || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small mb0">No fixtures yet.</p>';
+  if (!fx.length) { host.innerHTML = '<p class="muted small mb0">No fixtures yet.</p>'; return; }
+  const ei = 'padding:5px 7px;border-radius:6px;border:1px solid var(--border);background:var(--bg-2);color:var(--text);font-size:.85rem';
+  host.innerHTML = `<p class="small muted" style="margin-top:0">Edit any field then Save, or ✕ to delete.</p><div class="table-wrap"><table><thead><tr><th class="num">R</th><th class="name">Home</th><th class="name">Away</th><th>Window</th><th class="num"></th></tr></thead><tbody>${fx.map(f => `<tr>
+    <td class="num"><input data-fx="${f.id}|round_no" type="number" min="1" value="${f.round_no}" style="${ei};width:50px"></td>
+    <td><select data-fx="${f.id}|home_entry" style="${ei};min-width:120px">${entryOptions(f.home_entry)}</select></td>
+    <td><select data-fx="${f.id}|away_entry" style="${ei};min-width:120px">${entryOptions(f.away_entry)}</select></td>
+    <td><input data-fx="${f.id}|date_window" value="${esc(f.date_window || '')}" style="${ei};min-width:110px"></td>
+    <td class="num" style="white-space:nowrap"><button class="btn" data-fxsave="${f.id}" style="padding:2px 10px">Save</button> <button class="btn ghost" data-fxdel="${f.id}" style="padding:2px 8px" title="Delete">✕</button></td>
+  </tr>`).join('')}</tbody></table></div>`;
 }
 
 function renderResults(res) {
+  RESULTS = res || [];
   const host = document.getElementById('results-list');
   const nameOf = id => entries.find(e => e.id === id)?.team_name || '?';
-  host.innerHTML = res.length ? `<div class="table-wrap"><table><thead><tr><th class="name">Home</th><th class="num">Score</th><th class="name">Away</th><th>Date</th></tr></thead><tbody>${res.map(m => `<tr><td class="name">${esc(nameOf(m.home_entry))}</td><td class="num">${m.forfeit ? 'F' : m.home_td}–${m.forfeit ? 'F' : m.away_td}</td><td class="name">${esc(nameOf(m.away_entry))}</td><td class="muted">${esc(m.played_on || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small mb0">No results yet.</p>';
+  host.innerHTML = res.length ? `<div class="table-wrap"><table><thead><tr><th class="name">Home</th><th class="num">Score</th><th class="name">Away</th><th>Date</th><th class="num"></th></tr></thead><tbody>${res.map(m => `<tr><td class="name">${esc(nameOf(m.home_entry))}</td><td class="num">${m.forfeit ? 'F' : m.home_td}–${m.forfeit ? 'F' : m.away_td}</td><td class="name">${esc(nameOf(m.away_entry))}</td><td class="muted">${esc(m.played_on || '')}</td><td class="num" style="white-space:nowrap"><button class="btn ghost" data-redit="${m.id}" style="padding:2px 9px">Edit</button> <button class="btn ghost" data-rdel="${m.id}" style="padding:2px 8px" title="Delete">✕</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted small mb0">No results yet.</p>';
+}
+
+function fillResult(m) {
+  editingResultId = m.id;
+  const g = id => document.getElementById(id);
+  g('r-home').value = m.home_entry || ''; g('r-away').value = m.away_entry || '';
+  STAT_KEYS.forEach(([k]) => { if (g('r-h-' + k)) g('r-h-' + k).value = m['home_' + k] ?? 0; if (g('r-a-' + k)) g('r-a-' + k).value = m['away_' + k] ?? 0; });
+  g('r-forfeit').value = m.forfeit || ''; g('r-date').value = m.played_on || '';
+  g('r-title').textContent = 'Edit result'; g('r-add').textContent = 'Update result'; g('r-cancel').style.display = '';
+  g('r-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function renderRosters(teams) {
@@ -214,14 +243,21 @@ function wire() {
     const home = $('r-home').value, away = $('r-away').value;
     if (!home || !away) return msg('Pick both teams.');
     if (home === away) return msg('Home and away must differ.');
-    const { error } = await sb.from('results').insert({
-      home_entry: home, away_entry: away,
-      home_td: +$('r-htd').value || 0, away_td: +$('r-atd').value || 0,
-      home_cas: +$('r-hcas').value || 0, away_cas: +$('r-acas').value || 0,
-      forfeit: $('r-forfeit').value || null, played_on: $('r-date').value || null,
-    });
-    msg(error ? 'Error: ' + error.message : 'Result saved — standings will update.'); if (!error) loadAll();
+    const payload = { home_entry: home, away_entry: away, forfeit: $('r-forfeit').value || null, played_on: $('r-date').value || null };
+    STAT_KEYS.forEach(([k]) => { payload['home_' + k] = +$('r-h-' + k).value || 0; payload['away_' + k] = +$('r-a-' + k).value || 0; });
+    let error;
+    if (editingResultId) ({ error } = await sb.from('results').update(payload).eq('id', editingResultId));
+    else ({ error } = await sb.from('results').insert(payload));
+    msg(error ? 'Error: ' + error.message : (editingResultId ? 'Result updated.' : 'Result saved — standings will update.'));
+    if (!error) { editingResultId = null; loadAll(); }
   });
+  $('r-cancel').addEventListener('click', () => { editingResultId = null; loadAll(); });
+  document.querySelectorAll('[data-redit]').forEach(b => b.addEventListener('click', () => { const m = RESULTS.find(x => x.id === b.dataset.redit); if (m) fillResult(m); }));
+  document.querySelectorAll('[data-rdel]').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('Delete this result?')) return;
+    const { error } = await sb.from('results').delete().eq('id', b.dataset.rdel);
+    msg(error ? 'Error: ' + error.message : 'Result deleted.'); if (!error) loadAll();
+  }));
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

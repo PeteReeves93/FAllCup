@@ -68,6 +68,8 @@
       const configured = state?.configured ?? DB.configured;
       const user = state?.user ?? DB.user;
       const profile = state?.profile ?? DB.profile;
+      const resolved = state?.resolved ?? DB.resolved;
+      if (configured && !resolved) { form.style.display = 'none'; panel.style.display = 'none'; return; }  // wait for the session check
       if (user) {
         form.style.display = 'none';
         panel.style.display = 'block';

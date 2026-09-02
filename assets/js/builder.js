@@ -141,8 +141,10 @@ function boot() { if (!app()) return; DB.onChange(render); render({ configured: 
 function render(state) {
   const configured = state?.configured ?? DB.configured;
   const user = state?.user ?? DB.user;
+  const resolved = state?.resolved ?? DB.resolved;
   if (!configured) { notice('<h4>Backend not connected yet</h4><p class="muted mb0">Add your Supabase keys to <code>assets/js/config.js</code> and this lights up.</p>', 'wip'); return; }
   if (!user) {
+    if (!resolved) { notice('<p class="muted mb0">Loading…</p>'); return; }   // don't flash the gate before the session is known
     app().innerHTML = `<div class="gate"><span class="card-icon">🔒</span><h3>Sign in to build your team</h3>
       <p class="muted">Rosters are private to each coach.</p>
       <a class="btn block discord" href="login.html">Continue with Discord</a>
