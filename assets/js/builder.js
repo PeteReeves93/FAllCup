@@ -187,7 +187,10 @@ async function loadAndRender() {
   }
 
   try {
-    const { data: t } = await DB.sb.from('teams').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+    // Always load THIS coach's own team. RLS lets an admin read every team, so without an
+    // explicit owner filter the builder would load whichever team was updated most recently
+    // (another coach's) — and a later Save would overwrite it. Scope to the signed-in owner.
+    const { data: t } = await DB.sb.from('teams').select('*').eq('owner_id', DB.user.id).order('updated_at', { ascending: false }).limit(1).maybeSingle();
     if (t) {
       team = { ...newTeam(), id: t.id, bbTeamId: t.bb_team_id, tournamentId: t.tournament_id,
         name: t.name, race: t.race, tier: t.tier, startingSpp: t.starting_spp, budget: t.budget_gp,
