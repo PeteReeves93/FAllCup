@@ -36,7 +36,9 @@ window.FALLCUP = {
     chosenPrimaryCost: 6,   // 6 SPP buys one chosen Primary skill
     apothecaryCost: 50000,
     staffCost: 10000,       // assistant coach / cheerleader, each
-    skillValue: { primary: 20000, secondary: 40000 }, // CTV value increments — verify vs BB2025
+    skillValue: { primary: 20000, secondary: 40000 }, // BB2025 CTV increment per COACH-ADDED skill
+    eliteSkillSurcharge: 10000,                        // BB2025: choosing an Elite skill adds +10k TV
+    eliteSkills: ["Block", "Dodge", "Guard", "Mighty Blow"], // the four BB2025 Elite skills
     tierSpp: { 1: 30, 2: 36, 3: 42, 4: 48 },
     reDraftedAllowed: false,
   },

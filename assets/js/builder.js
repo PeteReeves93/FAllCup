@@ -15,7 +15,13 @@ const plus  = n => (n == null || n === '' ? '–' : (typeof n === 'number' ? n +
 const uid   = () => Math.random().toString(36).slice(2, 9);
 const TOURNEY = 'fall-cup-ii';
 
-const skillInc  = t => (t === 'secondary' ? B.skillValue.secondary : B.skillValue.primary);
+const ELITE_SKILLS = new Set(B.eliteSkills || []);            // BB2025 Elite skills: Block, Dodge, Guard, Mighty Blow
+const isEliteSkill = name => ELITE_SKILLS.has(name);
+// Team-Value increment for a COACH-ADDED skill: primary/secondary base + Elite surcharge.
+// Starting (innate) skills are baked into the base cost and never pass through here, so an
+// Ogre that starts with Mighty Blow is not taxed the +10k — only a chosen Elite skill is.
+const skillInc  = k => (k.type === 'secondary' ? B.skillValue.secondary : B.skillValue.primary)
+                       + (isEliteSkill(k.name) ? (B.eliteSkillSurcharge || 0) : 0);
 const skillCost = t => (t === 'secondary' ? B.secondarySkillCost : B.chosenPrimaryCost);
 
 /* ---------------- ENGINE (pure) ---------------- */
@@ -24,14 +30,14 @@ const ENGINE = {
   budget(team) { return team.budget != null ? team.budget : B.budget; },
   live(team)   { return (team.players || []).filter(p => p.status !== 'dead'); },
 
-  playerValue(p) { return (p.base_cost || 0) + (p.skills || []).reduce((s, k) => s + skillInc(k.type), 0); },
+  playerValue(p) { return (p.base_cost || 0) + (p.skills || []).reduce((s, k) => s + skillInc(k), 0); },
   playerSkillSpp(p) { return (p.skills || []).reduce((s, k) => s + skillCost(k.type), 0); },
   lowCostLinemen(team) { return !!team && (team.specialRules || []).some(r => String(r).toLowerCase().includes('low cost linemen')); },
   // Team-Value contribution: with "Low Cost Linemen", a lineman's BASE cost is
   // excluded from TV (they still cost full gold to buy; skills still count).
   playerTV(p, team) {
     const base = (ENGINE.lowCostLinemen(team) && p.is_lineman) ? 0 : (p.base_cost || 0);
-    return base + (p.skills || []).reduce((s, k) => s + skillInc(k.type), 0);
+    return base + (p.skills || []).reduce((s, k) => s + skillInc(k), 0);
   },
 
   staffValue(team) {
@@ -112,9 +118,20 @@ function choosableSkills(p) {
   const uniq = codes => { const s = new Set(); (codes || []).forEach(c => (cats[c] || []).forEach(k => s.add(k))); return [...s]; };
   let prim = uniq(p.primary_access), sec = uniq(p.secondary_access);
   if (!prim.length && !sec.length) { const all = new Set(); Object.values(cats).forEach(a => a.forEach(k => all.add(k))); prim = [...all]; }
-  const list = prim.sort().map(n => ({ name: n, kind: 'primary' }));
-  sec.sort().forEach(n => { if (!prim.includes(n)) list.push({ name: n, kind: 'secondary' }); });
+  // A player can't take a skill it already has — starting (innate) skills included.
+  // This keeps innate skills (e.g. an Ogre's Mighty Blow) out of TV/SPP entirely.
+  const owned = new Set([...(p.starting_skills || []), ...(p.skills || []).map(k => k.name)]);
+  const list = prim.sort().filter(n => !owned.has(n)).map(n => ({ name: n, kind: 'primary' }));
+  sec.sort().forEach(n => { if (!prim.includes(n) && !owned.has(n)) list.push({ name: n, kind: 'secondary' }); });
   return list;
+}
+
+/* innate starting skills — shown read-only; ★ marks Elite skills (free here, +10k only if chosen) */
+function startingSkillsLine(p) {
+  const ss = p.starting_skills || [];
+  if (!ss.length) return '';
+  const names = ss.map(n => escapeHtml(n) + (isEliteSkill(n) ? ' ★' : '')).join(', ');
+  return `<div class="small muted" title="Innate skills — included in the base cost, no TV or SPP">Starts with: ${names}</div>`;
 }
 
 /* ---------------- UI ---------------- */
@@ -190,7 +207,7 @@ async function loadAndRender() {
         return { uid: uid(), positional_id: r.positional_id, position_title: r.position_title, base_cost: r.base_cost,
           ma: r.ma, st: r.st, ag: r.ag, pa: r.pa, av: r.av,
           max_count: src.max_count, group_name: src.group_name, group_max: src.group_max, is_lineman: src.is_lineman,
-          primary_access: src.primary_access || [], secondary_access: src.secondary_access || [],
+          primary_access: src.primary_access || [], secondary_access: src.secondary_access || [], starting_skills: src.skills || [],
           name: r.player_name || '',
           skills, spp: r.spp || 0, status: r.status || 'active', niggling: r.niggling || 0, notes: r.notes || '' };
       });
@@ -368,13 +385,14 @@ function cataloguePanel(cat) {
 function creationSkillCell(p) {
   if ((p.skills || []).length) {
     const k = p.skills[0];
-    return `<div class="skill-chip"><strong>${escapeHtml(k.name)}</strong>
-      <span class="muted small">${k.type === 'secondary' ? '12 SPP · Secondary' : '6 SPP · Primary'}</span>
+    const elite = isEliteSkill(k.name) ? ' + 10k Elite' : '';
+    return `${startingSkillsLine(p)}<div class="skill-chip"><strong>${escapeHtml(k.name)}</strong>
+      <span class="muted small">${k.type === 'secondary' ? '12 SPP · Secondary' : '6 SPP · Primary'}${elite}</span>
       <button class="combo-clear" data-clear="${p.uid}" title="Remove skill">✕</button></div>`;
   }
   const opts = choosableSkills(p).map(o =>
-    `<div class="combo-opt" data-pick="${p.uid}|${escapeHtml(o.name)}|${o.kind}">${o.name}<span class="muted small"> · ${o.kind === 'secondary' ? '12' : '6'} SPP</span></div>`).join('');
-  return `
+    `<div class="combo-opt" data-pick="${p.uid}|${escapeHtml(o.name)}|${o.kind}">${o.name}<span class="muted small"> · ${o.kind === 'secondary' ? '12' : '6'} SPP${isEliteSkill(o.name) ? ' · Elite' : ''}</span></div>`).join('');
+  return `${startingSkillsLine(p)}
     <div class="spp-mini">SPP
       <button class="spp-btn" data-sppdec="${p.uid}">−</button><strong>${p.spp || 0}</strong><button class="spp-btn" data-sppinc="${p.uid}">+</button>
       <span class="muted small">banked</span>
@@ -407,7 +425,7 @@ function rosterViewTable() {
   const label = { active: 'Active', mng: 'MNG', dead: 'Dead' };
   const rows = team.players.map((p, i) => {
     const dead = p.status === 'dead';
-    const skills = (p.skills || []).map(k => k.name).join(', ') || '—';
+    const skills = [...(p.starting_skills || []), ...(p.skills || []).map(k => k.name)].join(', ') || '—';
     const notes = p.notes ? `<div class="small muted">${escapeHtml(p.notes)}</div>` : '';
     return `<tr${dead ? ' style="opacity:.5"' : ''}>
       <td class="num">${i + 1}</td>
@@ -455,11 +473,14 @@ function leaguePlayerCard(p, i) {
   const dead = p.status === 'dead';
   const statNum = (lbl, key, suffix) =>
     `<label class="lg-stat">${lbl}<input type="number" data-stat="${p.uid}|${key}" value="${p[key] ?? ''}" style="width:52px">${suffix || ''}</label>`;
+  const startChips = (p.starting_skills || []).map(n =>
+    `<span class="skill-chip" style="padding:3px 6px;opacity:.65" title="Innate — no TV or SPP"><strong>${escapeHtml(n)}</strong><span class="muted small">${isEliteSkill(n) ? '★' : 'start'}</span></span>`).join(' ');
   const skillChips = (p.skills || []).map((k, idx) =>
-    `<span class="skill-chip" style="padding:3px 6px"><strong>${escapeHtml(k.name)}</strong><span class="muted small">${k.type === 'secondary' ? 'S' : 'P'}</span>
+    `<span class="skill-chip" style="padding:3px 6px"><strong>${escapeHtml(k.name)}</strong><span class="muted small">${k.type === 'secondary' ? 'S' : 'P'}${isEliteSkill(k.name) ? '★' : ''}</span>
       <button class="combo-clear" data-skillrm="${p.uid}|${idx}" title="Remove (refunds SPP)">✕</button></span>`).join(' ');
+  const chips = [startChips, skillChips].filter(Boolean).join(' ');
   const opts = choosableSkills(p).map(o =>
-    `<div class="combo-opt" data-pick="${p.uid}|${escapeHtml(o.name)}|${o.kind}">${o.name}<span class="muted small"> · ${o.kind === 'secondary' ? '12' : '6'} SPP</span></div>`).join('');
+    `<div class="combo-opt" data-pick="${p.uid}|${escapeHtml(o.name)}|${o.kind}">${o.name}<span class="muted small"> · ${o.kind === 'secondary' ? '12' : '6'} SPP${isEliteSkill(o.name) ? ' · Elite' : ''}</span></div>`).join('');
   const sel = (val, optsArr) => optsArr.map(([v, t]) => `<option value="${v}"${v === val ? ' selected' : ''}>${t}</option>`).join('');
   return `<div class="lg-card${dead ? ' dead' : ''}">
     <input class="lg-notes" data-pname="${p.uid}" value="${escapeHtml(p.name || '')}" placeholder="player name…" style="max-width:260px;margin-bottom:.5rem">
@@ -478,7 +499,7 @@ function leaguePlayerCard(p, i) {
       <label class="lg-stat">SPP<input type="number" data-sppset="${p.uid}" value="${p.spp || 0}" style="width:56px"></label>
     </div>
     <div class="lg-skills">
-      <span class="small muted">Skills:</span> ${skillChips || '<span class="muted small">none</span>'}
+      <span class="small muted">Skills:</span> ${chips || '<span class="muted small">none</span>'}
       <span class="combo" style="display:inline-block;min-width:150px"><input class="combo-input" placeholder="add skill (spends SPP)…" data-comboinput="${p.uid}" autocomplete="off">
         <div class="combo-list" data-combolist="${p.uid}">${opts}</div></span>
     </div>
@@ -570,7 +591,7 @@ function wire(cat) {
     team.players.push({ uid: uid(), positional_id: pos.id, position_title: pos.title, base_cost: pos.cost,
       ma: pos.ma, st: pos.st, ag: pos.ag, pa: pos.pa, av: pos.av,
       max_count: pos.max_count, group_name: pos.group_name, group_max: pos.group_max, is_lineman: pos.is_lineman,
-      primary_access: pos.primary_access, secondary_access: pos.secondary_access,
+      primary_access: pos.primary_access, secondary_access: pos.secondary_access, starting_skills: pos.skills || [],
       name: '', skills: [], spp: 0, status: 'active', niggling: 0, notes: '' });
     renderBuilder();
   }));
